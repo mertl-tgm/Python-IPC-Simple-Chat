@@ -6,7 +6,7 @@ class Model(threading.Thread):
 
     def __init__(self):
         threading.Thread.__init__(self)
-        self.port = 4444
+        self.port = 4242
         self.host = "localhost"
 
     def run(self):
