@@ -13,7 +13,7 @@ class Controller(object):
         self.view = View.Ui_MainWindow()
         self.view.setupUi(self.window)
 
-        self.model = Model()
+        self.model = Model(self)
         self.model.start()
 
 
