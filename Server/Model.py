@@ -2,12 +2,13 @@ from abc import ABCMeta, abstractmethod
 import threading
 import socket
 import time
+from PySide.QtCore import QThread, SIGNAL
 
 
-class Model(threading.Thread):
+class Model(QThread):
 
     def __init__(self, c):
-        threading.Thread.__init__(self)
+        QThread.__init__(self)
         self.port = 4242
         self.threads = []
         self.c = c
@@ -27,10 +28,10 @@ class Model(threading.Thread):
                 print("Socket closed.")
 
 
-class Recv(threading.Thread):
+class Recv(QThread):
 
     def __init__(self, con, c):
-        threading.Thread.__init__(self)
+        QThread.__init__(self)
         self.running = True
         self.con = con
         self.c = c
