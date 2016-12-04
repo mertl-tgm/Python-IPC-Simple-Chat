@@ -80,8 +80,7 @@ class Recv(threading.Thread):
                 print("Verbindung vom Client getrennt")
 
     def send(self, text):
-        pass
-        #con.send(text.encode())
+        self.con.send(text.encode())
 
 
 class View(QtGui.QMainWindow, ServerView.Ui_MainWindow):

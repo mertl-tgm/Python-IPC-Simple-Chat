@@ -6,12 +6,13 @@ import ClientView
 import threading
 import queue
 import socket
+import time
 
 
 class Update(QThread):
-    def __init__(self):
+    def __init__(self, queue):
         QThread.__init__(self)
-        self.queue = queue.Queue()
+        self.queue = queue
 
     def run(self):
         while True:
@@ -21,11 +22,14 @@ class Update(QThread):
 
 class Send(threading.Thread):
 
-    def __init__(self, queue):
+    def __init__(self, queue, queueR):
         threading.Thread.__init__(self)
         self.port = 4242
         self.host = "localhost"
         self.queue = queue
+        self.con = None
+        self.recv = Recv(self, queueR)
+        self.recv.start()
 
     def run(self):
         while True:
@@ -41,17 +45,22 @@ class Send(threading.Thread):
 
 class Recv(threading.Thread):
 
-    def __init__(self, con):
+    def __init__(self, send, queue):
         threading.Thread.__init__(self)
         self.port = 4242
         self.host = "localhost"
         self.queue = queue
-        self.con = con
+        self.send = send
 
     def run(self):
         while True:
+            time.sleep(1)
+            self.con = self.send.con
+            if self.con is not None:
+                break
+        while True:
             text = self.con.recv(1024).decode()
-            self.emit(SIGNAL('add_post(QString)'), text)
+            self.queue.put(text)
 
 
 class View(QtGui.QMainWindow, ClientView.Ui_MainWindow):
@@ -59,15 +68,14 @@ class View(QtGui.QMainWindow, ClientView.Ui_MainWindow):
     def __init__(self):
         super(self.__class__, self).__init__()
         self.setupUi(self)
-        self.update = Update()
+        self.queueR = queue.Queue()
+        self.update = Update(self.queueR)
         self.connect(self.update, SIGNAL("add_post(QString)"), self.add_post)
         self.update.start()
 
         self.sendQ = queue.Queue()
-        self.send = Send(self.sendQ)
+        self.send = Send(self.sendQ, self.queueR)
         self.send.start()
-        #self.recv = Recv(self.send.con)
-        #self.recv.start()
         self.pushButton.clicked.connect(self.send_post)
 
     def send_post(self):
@@ -76,9 +84,6 @@ class View(QtGui.QMainWindow, ClientView.Ui_MainWindow):
         self.lineEdit.setText("")
 
     def add_post(self, text):
-        self.textBrowser_2.append(str(text))
-
-    def add_client(self, text):
         self.textBrowser.append(str(text))
 
     def done(self):
