@@ -3,6 +3,7 @@ import View
 import sys
 
 from PySide.QtGui import *
+import threading
 
 
 class Controller(object):
@@ -15,8 +16,6 @@ class Controller(object):
 
         self.model = Model(self)
         self.model.start()
-
-
 
 
 class MainWindow(QMainWindow):
