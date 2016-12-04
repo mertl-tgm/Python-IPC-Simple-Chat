@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractmethod
 import threading
 import socket
+import time
 
 
 class Model(threading.Thread):
@@ -49,6 +50,7 @@ class Recv(threading.Thread):
                     self.con.close()
                     break
                 print("Client: %s" % data)
+                self.c.view.textBrowser_2.setText("TEST")
             except ConnectionResetError:
                 self.running = False
                 print("Verbindung vom Client getrennt")
@@ -71,3 +73,39 @@ class Stoppable(metaclass=ABCMeta):
         """
         pass
 
+
+class WatchDog(threading.Thread):
+    """
+        @author Ertl Marvin
+        @version 2016-11-26
+
+        This class inherits from thread, in the run method the thread wait till the stoptime is reached and then call
+        stopping in all threads
+
+            :ivar int stoptime:           Indicates when the all threads will be stopped and finished
+            :ivar [] threads:             A list with all threads, which should be secured by the watchdog
+    """
+
+    def __init__(self, stoptime, *threads):
+        """
+        Initial the base class thread and and set the stoptime, threads list
+        :param int stoptime:    How long the threads will be running
+        :param [] threads:      List of all threads
+        """
+        threading.Thread.__init__(self)
+        self.stoptime = stoptime
+        self.threads = threads
+
+    def run(self):
+        """
+        The run method will wait till the given time is reached and then call stopping in all threads from the list
+        :return: None
+        """
+        start = time.time()
+        end = start + self.stoptime
+
+        while time.time() < end:
+            time.sleep(0.9)
+
+        for t in self.threads:
+            t.stopping()
