@@ -12,7 +12,7 @@ class Update(QThread):
     def __init__(self):
         QThread.__init__(self)
         self.queue = queue.Queue()
-        self.model = Model(self.queue)
+        self.model = Model(self.queue, self)
 
     def run(self):
         self.model.start()
@@ -23,14 +23,18 @@ class Update(QThread):
     def send(self, text):
         self.model.send(text)
 
+    def set_client(self, text):
+        self.emit(SIGNAL('set_client(QString)'), text)
+
 
 class Model(threading.Thread):
 
-    def __init__(self, queue):
+    def __init__(self, queue, update):
         threading.Thread.__init__(self)
         self.port = 4242
         self.threads = []
         self.queue = queue
+        self.update = update
 
     def run(self):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as serversocket:
@@ -39,9 +43,14 @@ class Model(threading.Thread):
             try:
                 while True:
                     con, addr = serversocket.accept()
-                    r = Recv(con, self.queue)
+                    r = Recv(con, self.queue, "Client " + str(len(self.threads) + 1))
                     r.start()
                     self.threads += [r]
+
+                    text = ""
+                    for t in self.threads:
+                        text += t.name + "\n"
+                    self.update.set_client(text)
             except socket.error as serr:
                 print(serr)
                 print("Socket closed.")
@@ -53,11 +62,12 @@ class Model(threading.Thread):
 
 class Recv(threading.Thread):
 
-    def __init__(self, con, queue):
+    def __init__(self, con, queue, name):
         threading.Thread.__init__(self)
         self.running = True
         self.con = con
         self.queue = queue
+        self.name = name
 
     def stopping(self):
         """
@@ -73,8 +83,8 @@ class Recv(threading.Thread):
                 if not data:
                     self.con.close()
                     break
-                print("Client: %s" % data)
-                self.queue.put("Client: %s" % data)
+                print(self.name + ": %s" % data)
+                self.queue.put(self.name + ": %s" % data)
             except ConnectionResetError:
                 self.running = False
                 print("Verbindung vom Client getrennt")
@@ -90,20 +100,17 @@ class View(QtGui.QMainWindow, ServerView.Ui_MainWindow):
         self.setupUi(self)
         self.update = Update()
         self.connect(self.update, SIGNAL("add_post(QString)"), self.add_post)
+        self.connect(self.update, SIGNAL("set_client(QString)"), self.set_client)
         self.update.start()
+
+        #QtGui.QMessageBox.information(self, "Done!", "Done fetching posts!")
 
     def add_post(self, text):
         self.textBrowser_2.append(str(text))
         self.update.send(text)
 
-    def add_client(self, text):
-        self.textBrowser.append(str(text))
-
-    def done(self):
-        self.btn_stop.setEnabled(False)
-        self.btn_start.setEnabled(True)
-        self.progress_bar.setValue(0)
-        QtGui.QMessageBox.information(self, "Done!", "Done fetching posts!")
+    def set_client(self, text):
+        self.textBrowser.setText(str(text))
 
 
 class Stoppable(metaclass=ABCMeta):

@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'view.ui'
 #
-# Created: Fri Dec  2 13:20:41 2016
+# Created: Mon Dec  5 10:32:05 2016
 #      by: pyside-uic 0.2.15 running on PySide 1.2.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -15,18 +15,20 @@ class Ui_MainWindow(object):
         MainWindow.resize(800, 600)
         self.centralwidget = QtGui.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
+        self.verticalLayout = QtGui.QVBoxLayout(self.centralwidget)
+        self.verticalLayout.setObjectName("verticalLayout")
         self.label = QtGui.QLabel(self.centralwidget)
-        self.label.setGeometry(QtCore.QRect(20, 20, 131, 16))
         self.label.setObjectName("label")
+        self.verticalLayout.addWidget(self.label)
         self.textBrowser = QtGui.QTextBrowser(self.centralwidget)
-        self.textBrowser.setGeometry(QtCore.QRect(20, 50, 751, 211))
         self.textBrowser.setObjectName("textBrowser")
+        self.verticalLayout.addWidget(self.textBrowser)
         self.label_2 = QtGui.QLabel(self.centralwidget)
-        self.label_2.setGeometry(QtCore.QRect(20, 300, 53, 16))
         self.label_2.setObjectName("label_2")
+        self.verticalLayout.addWidget(self.label_2)
         self.textBrowser_2 = QtGui.QTextBrowser(self.centralwidget)
-        self.textBrowser_2.setGeometry(QtCore.QRect(20, 330, 751, 211))
         self.textBrowser_2.setObjectName("textBrowser_2")
+        self.verticalLayout.addWidget(self.textBrowser_2)
         MainWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QtGui.QStatusBar(MainWindow)
         self.statusbar.setObjectName("statusbar")
