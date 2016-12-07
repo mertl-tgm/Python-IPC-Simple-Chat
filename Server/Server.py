@@ -76,8 +76,7 @@ class Model(threading.Thread, Stoppable):
                     self.threads += [r]
                     self.update.set_client(r.name)
             except socket.error as serr:
-                print(serr)
-                print("Socket closed.")
+                pass
 
             for t in self.threads:
                 t.con.close()
@@ -120,7 +119,6 @@ class Recv(threading.Thread, Stoppable):
                 self.queue.put(self.name + ": %s" % data)
             except ConnectionResetError:
                 self.running = False
-                print("Verbindung vom Client getrennt")
                 self.update.remove_client(self.name)
             except ConnectionAbortedError:
                 pass

@@ -135,12 +135,12 @@ class View(QtGui.QMainWindow, ClientView.Ui_MainWindow):
         self.textBrowser.append(str(text))
 
     def message(self, text, titel):
-        QtGui.QMessageBox.information(self, titel, text)
+        QtGui.QMessageBox.critical(self, titel, text)
+        self.close()
 
     def closeEvent(self, event):
         self.queueR.put(False)
         self.send.stopping()
-        pass
 
 
 def main():
