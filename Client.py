@@ -63,16 +63,20 @@ class Send(threading.Thread, Stoppable):
                 self.recv.start()
                 while self.running:
                     text = self.queue.get()
+                    if text is False:
+                        break
                     self.con.send(text.encode())
             except socket.error as serr:
-                self.update.message("Es konnte keine Verbindung mit den Server hergestellt werden", "ERROR")
+                self.update.message("Es konnte keine Verbindung mit den Server hergestellt werden.", "ERROR")
                 self.update.queue.put(False)
                 self.stopping()
 
     def stopping(self):
+        self.running = False
+        self.queue.put(False)
+        self.con.close()
         if self.recv is not None:
             self.recv.stopping()
-        self.running = False
 
 
 class Recv(threading.Thread, Stoppable):
@@ -97,9 +101,13 @@ class Recv(threading.Thread, Stoppable):
                 self.update.message("Verbindung zum Server verloren.", "ERROR")
                 self.update.queue.put(False)
                 self.send.stopping()
+            except ConnectionAbortedError:
+                self.stopping()
 
     def stopping(self):
         self.running = False
+        if self.send.running is True:
+            self.send.stopping()
 
 
 class View(QtGui.QMainWindow, ClientView.Ui_MainWindow):
