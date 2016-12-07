@@ -296,8 +296,8 @@ class View(QtGui.QMainWindow, ServerView.Ui_MainWindow):
         """
         Overwritten closeEvent, will be called if the user exit the program, will put a False into the queue to stop all
         threads and exit the program correctly
-        :param event: The event which will be given when the user exit the program
-        :return: None
+        :param event:
+        :return:
         """
         self.queue.put(False)
 

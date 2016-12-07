@@ -2,12 +2,12 @@ Server
 ------
 
 
-.. automodule:: Model
+.. automodule:: Server
     :members:
     :special-members:
     :undoc-members:
 
-.. autoclass:: Model
+.. autoclass:: Server
     :members:
     :special-members:
     :private-members:

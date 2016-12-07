@@ -11,8 +11,8 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-   Model
-   Send
+   Client
+   Server
 
 
 Indices and tables

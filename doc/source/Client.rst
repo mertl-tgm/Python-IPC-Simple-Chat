@@ -2,12 +2,12 @@ Client
 ------
 
 
-.. automodule:: Send
+.. automodule:: Client
     :members:
     :special-members:
     :undoc-members:
 
-.. autoclass:: Send
+.. autoclass:: Client
     :members:
     :special-members:
     :private-members:
