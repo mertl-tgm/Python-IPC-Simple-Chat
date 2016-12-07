@@ -31,6 +31,9 @@ class Update(QThread):
     def set_client(self, text):
         self.emit(SIGNAL('set_client(QString)'), text)
 
+    def remove_client(self, text):
+        self.emit(SIGNAL('remove_client(QString)'), text)
+
 
 class Stoppable(metaclass=ABCMeta):
     """
@@ -68,14 +71,10 @@ class Model(threading.Thread, Stoppable):
             try:
                 while self.running:
                     con, addr = self.serversocket.accept()
-                    r = Recv(con, self.queue, "Client " + str(len(self.threads) + 1))
+                    r = Recv(con, self.queue, "Client " + str(len(self.threads) + 1), self.update)
                     r.start()
                     self.threads += [r]
-
-                    text = ""
-                    for t in self.threads:
-                        text += t.name + "\n"
-                    self.update.set_client(text)
+                    self.update.set_client(r.name)
             except socket.error as serr:
                 print(serr)
                 print("Socket closed.")
@@ -96,12 +95,13 @@ class Model(threading.Thread, Stoppable):
 
 class Recv(threading.Thread, Stoppable):
 
-    def __init__(self, con, queue, name):
+    def __init__(self, con, queue, name, update):
         threading.Thread.__init__(self)
         self.running = True
         self.con = con
         self.queue = queue
         self.name = name
+        self.update = update
 
     def stopping(self):
         """
@@ -121,6 +121,7 @@ class Recv(threading.Thread, Stoppable):
             except ConnectionResetError:
                 self.running = False
                 print("Verbindung vom Client getrennt")
+                self.update.remove_client(self.name)
             except ConnectionAbortedError:
                 pass
 
@@ -137,14 +138,31 @@ class View(QtGui.QMainWindow, ServerView.Ui_MainWindow):
         self.update = Update(self.queue)
         self.connect(self.update, SIGNAL("add_post(QString)"), self.add_post)
         self.connect(self.update, SIGNAL("set_client(QString)"), self.set_client)
+        self.connect(self.update, SIGNAL("remove_client(QString)"), self.remove_client)
         self.update.start()
+        self.names = []
 
     def add_post(self, text):
         self.textBrowser_2.append(str(text))
         self.update.send(text)
 
     def set_client(self, text):
-        self.textBrowser.setText(str(text))
+        self.textBrowser.append(str(text))
+        self.names += [text]
+
+    def remove_client(self, text):
+        name2 = []
+        for name in self.names:
+            if name != text:
+                name2 += [name]
+        self.names = name2
+        text2 = ""
+        for name in self.names:
+            text2 += name + "\n"
+        self.textBrowser.setText(text2)
+        for t in self.update.model.threads:
+            if t.name not in self.names:
+                self.update.model.threads.remove(t)
 
     def closeEvent(self, event):
         self.queue.put(False)
