@@ -227,8 +227,24 @@ class Recv(threading.Thread, Stoppable):
 
 
 class View(QtGui.QMainWindow, ServerView.Ui_MainWindow):
+    """
+        @author Ertl Marvin
+        @version 2016-12-07
+
+        This class inherits from the QtGui.QMainWindow and from ServerView.Ui_MainWindow,
+        this class will setup the view and connection and will wait for a client to connect to
+
+            :ivar queue:        The queue in which the received messages will be put
+            :ivar update:       Class update, which send the signal to the view
+            :ivar names:        List of the names of the connected clients
+    """
 
     def __init__(self):
+        """
+        Initial the base class threading.Thread, set up the Ui, create the queues for the classes and connect the method
+        to the signal receiver, it will also start the update thread for updating the gui and will wait for a client
+        to connect to the serversocket
+        """
         super(self.__class__, self).__init__()
         self.setupUi(self)
         self.queue = queue.Queue()
@@ -240,14 +256,29 @@ class View(QtGui.QMainWindow, ServerView.Ui_MainWindow):
         self.names = []
 
     def add_post(self, text):
+        """
+        Adds the received message to the text field in the gui
+        :param text: The messages which will be added
+        :return: None
+        """
         self.textBrowser_2.append(str(text))
         self.update.send(text)
 
     def set_client(self, text):
+        """
+        Adds the name of the client to the connect clients field
+        :param text: The name of the client
+        :return: None
+        """
         self.textBrowser.append(str(text))
         self.names += [text]
 
     def remove_client(self, text):
+        """
+        Removes the name of the disconnected client from the name list and also remove it from the gui
+        :param text: The name of the client which should be removed
+        :return: None
+        """
         name2 = []
         for name in self.names:
             if name != text:
@@ -262,10 +293,20 @@ class View(QtGui.QMainWindow, ServerView.Ui_MainWindow):
                 self.update.model.threads.remove(t)
 
     def closeEvent(self, event):
+        """
+        Overwritten closeEvent, will be called if the user exit the program, will put a False into the queue to stop all
+        threads and exit the program correctly
+        :param event:
+        :return:
+        """
         self.queue.put(False)
 
 
 def main():
+    """
+    Setups the app and view and display it
+    :return: None
+    """
     app = QtGui.QApplication(sys.argv)
     form = View()
     form.show()
