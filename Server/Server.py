@@ -9,13 +9,31 @@ import socket
 
 
 class Update(QThread):
+    """
+        @author Ertl Marvin
+        @version 2016-12-07
+
+        This class inherits from the QThread, the model will be started and handel the receive, send and listen thread,
+        this class will send the signal to the view, to change the gui
+
+            :ivar queue:    The queue for the received messages
+            :ivar model:    Model which handles the receive, send and listen thread
+    """
 
     def __init__(self, queue):
+        """
+        Initial the base class QThread and create Model
+        :param queue: The queue for the receiving messages
+        """
         QThread.__init__(self)
         self.queue = queue
         self.model = Model(self.queue, self)
 
     def run(self):
+        """
+        The run method start the model and get the received messages to send a signal to change the gui
+        :return: None
+        """
         self.model.start()
         while True:
             text = self.queue.get()
@@ -26,12 +44,27 @@ class Update(QThread):
         self.model.join()
 
     def send(self, text):
+        """
+        Will send the text via the model to all clients
+        :param text: The text which the server received from one client and will be send ot all clients
+        :return: None
+        """
         self.model.send(text)
 
     def set_client(self, text):
+        """
+        Send a signal to the view to add the text to the connected clients text field
+        :param text: The client name which will be added to the list in the view
+        :return: None
+        """
         self.emit(SIGNAL('set_client(QString)'), text)
 
     def remove_client(self, text):
+        """
+        Will send a signal to the view to remove one of the client names from the gui
+        :param text: The client name which will be removed from the list
+        :return: None
+        """
         self.emit(SIGNAL('remove_client(QString)'), text)
 
 
@@ -54,8 +87,28 @@ class Stoppable(metaclass=ABCMeta):
 
 
 class Model(threading.Thread, Stoppable):
+    """
+        @author Ertl Marvin
+        @version 2016-12-07
+
+        This class inherits from threading.Thread and Stoppable, the class will listen for client, which try to connect
+        to the server and handel the threads, receiving form these threads and sending messages to these threads.
+
+            :ivar port:             The port on which the socket listen for clients
+            :ivar threads:          List of all connected threads to the server
+            :ivar queue:            The queue for the received messages
+            :ivar update:           Class for updating the gui
+            :ivar running:          Set if the run methode will listen for threads
+            :ivar serversocket:     The serversocket on which the server listen for clients
+    """
 
     def __init__(self, queue, update):
+        """
+        Initial the base class threading.Thread and Stoppable, also setup the port to 4242, running to true and all
+        other variables to the default value
+        :param queue: The queue for the receiving messages
+        :param update: Update class for making changes in the gui
+        """
         threading.Thread.__init__(self)
         self.port = 4242
         self.threads = []
@@ -65,6 +118,12 @@ class Model(threading.Thread, Stoppable):
         self.serversocket = None
 
     def run(self):
+        """
+        The run methode will create a socket and listen for clients, if a client connects to the server, the client will
+        be added to the list threads and the server starts to recv messages from these connections, if the server
+        shuts down, the socket will be closed and all threads for the clients will be stopped.
+        :return: None
+        """
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as self.serversocket:
             self.serversocket.bind(("", self.port))
             self.serversocket.listen(5)
@@ -84,17 +143,46 @@ class Model(threading.Thread, Stoppable):
                 t.join()
 
     def send(self, text):
+        """
+        Send the text messages to all clients. which are connect to the server
+        :param text:
+        :return:
+        """
         for t in self.threads:
             t.send(text)
 
     def stopping(self):
+        """
+        Sets running to False, which stops the loop in the run method and closes the serversocket.
+        :return: None
+        """
         self.running = False
         self.serversocket.close()
 
 
 class Recv(threading.Thread, Stoppable):
+    """
+        @author Ertl Marvin
+        @version 2016-12-07
+
+        This class inherits from threading.Thread and Stoppable, the class will wait to receive messages from the
+        client, these messages will be put into the queue, so that it can be displayed by the update class
+
+            :ivar running:          Set if the run methode will listen for threads
+            .ivar con:              Connection to the thread
+            :ivar queue:            The queue for the received messages
+            :ivar name:             Name of the client
+            :ivar update:           Class for updating the gui
+    """
 
     def __init__(self, con, queue, name, update):
+        """
+        Initial the threading.Thread class, set running to true and set the attributes to the given values
+        :param con: The connection to the thread
+        :param queue: The queue for the received messages
+        :param name: The name of the thread
+        :param update: Class update to make changes to the gui
+        """
         threading.Thread.__init__(self)
         self.running = True
         self.con = con
@@ -104,12 +192,18 @@ class Recv(threading.Thread, Stoppable):
 
     def stopping(self):
         """
-        Will set running to false
+        Will set running to false, loop in run method will stop
         :return: None
         """
         self.running = False
 
     def run(self):
+        """
+        Waits to get a messages from the client until running is False or the connections will be closed, if a messages
+        is received it wiil be put into the queue, so that the update class can display it in the gui, if the connection
+        is closed the name of the client will be removed from the connected clients list
+        :return: None
+        """
         while self.running:
             try:
                 data = self.con.recv(1024).decode()
@@ -124,6 +218,11 @@ class Recv(threading.Thread, Stoppable):
                 pass
 
     def send(self, text):
+        """
+        Sends the message to the client
+        :param text: The message, which will be sent do the client
+        :return: None
+        """
         self.con.send(text.encode())
 
 
