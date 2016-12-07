@@ -9,16 +9,21 @@ import socket
 
 
 class Update(QThread):
-    def __init__(self):
+
+    def __init__(self, queue):
         QThread.__init__(self)
-        self.queue = queue.Queue()
+        self.queue = queue
         self.model = Model(self.queue, self)
 
     def run(self):
         self.model.start()
         while True:
             text = self.queue.get()
+            if text is False:
+                break
             self.emit(SIGNAL('add_post(QString)'), text)
+        self.model.stopping()
+        self.model.join()
 
     def send(self, text):
         self.model.send(text)
@@ -27,7 +32,25 @@ class Update(QThread):
         self.emit(SIGNAL('set_client(QString)'), text)
 
 
-class Model(threading.Thread):
+class Stoppable(metaclass=ABCMeta):
+    """
+        @author Ertl Marvin
+        @version 2016-12-02
+
+        This class inherits from the metaclass ABCMeta, abstract base class, it offers a method stopping, which need to
+        be overwritten
+    """
+
+    @abstractmethod
+    def stopping(self):
+        """
+        Abstract method, must be overwritten, will be called, when the thread need to be stopped
+        :return: None
+        """
+        pass
+
+
+class Model(threading.Thread, Stoppable):
 
     def __init__(self, queue, update):
         threading.Thread.__init__(self)
@@ -35,14 +58,16 @@ class Model(threading.Thread):
         self.threads = []
         self.queue = queue
         self.update = update
+        self.running = True
+        self.serversocket = None
 
     def run(self):
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as serversocket:
-            serversocket.bind(("", self.port))
-            serversocket.listen(5)
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as self.serversocket:
+            self.serversocket.bind(("", self.port))
+            self.serversocket.listen(5)
             try:
-                while True:
-                    con, addr = serversocket.accept()
+                while self.running:
+                    con, addr = self.serversocket.accept()
                     r = Recv(con, self.queue, "Client " + str(len(self.threads) + 1))
                     r.start()
                     self.threads += [r]
@@ -55,12 +80,21 @@ class Model(threading.Thread):
                 print(serr)
                 print("Socket closed.")
 
+            for t in self.threads:
+                t.con.close()
+                t.stopping()
+                t.join()
+
     def send(self, text):
         for t in self.threads:
             t.send(text)
 
+    def stopping(self):
+        self.running = False
+        self.serversocket.close()
 
-class Recv(threading.Thread):
+
+class Recv(threading.Thread, Stoppable):
 
     def __init__(self, con, queue, name):
         threading.Thread.__init__(self)
@@ -83,11 +117,12 @@ class Recv(threading.Thread):
                 if not data:
                     self.con.close()
                     break
-                print(self.name + ": %s" % data)
                 self.queue.put(self.name + ": %s" % data)
             except ConnectionResetError:
                 self.running = False
                 print("Verbindung vom Client getrennt")
+            except ConnectionAbortedError:
+                pass
 
     def send(self, text):
         self.con.send(text.encode())
@@ -98,12 +133,11 @@ class View(QtGui.QMainWindow, ServerView.Ui_MainWindow):
     def __init__(self):
         super(self.__class__, self).__init__()
         self.setupUi(self)
-        self.update = Update()
+        self.queue = queue.Queue()
+        self.update = Update(self.queue)
         self.connect(self.update, SIGNAL("add_post(QString)"), self.add_post)
         self.connect(self.update, SIGNAL("set_client(QString)"), self.set_client)
         self.update.start()
-
-        #QtGui.QMessageBox.information(self, "Done!", "Done fetching posts!")
 
     def add_post(self, text):
         self.textBrowser_2.append(str(text))
@@ -112,23 +146,8 @@ class View(QtGui.QMainWindow, ServerView.Ui_MainWindow):
     def set_client(self, text):
         self.textBrowser.setText(str(text))
 
-
-class Stoppable(metaclass=ABCMeta):
-    """
-        @author Ertl Marvin
-        @version 2016-12-02
-
-        This class inherits from the metaclass ABCMeta, abstract base class, it offers a method stopping, which need to
-        be overwritten
-    """
-
-    @abstractmethod
-    def stopping(self):
-        """
-        Abstract method, must be overwritten, will be called, when the thread need to be stopped
-        :return: None
-        """
-        pass
+    def closeEvent(self, event):
+        self.queue.put(False)
 
 
 def main():

@@ -59,8 +59,11 @@ class Recv(threading.Thread):
             if self.con is not None:
                 break
         while True:
-            text = self.con.recv(1024).decode()
-            self.queue.put(text)
+            try:
+                text = self.con.recv(1024).decode()
+                self.queue.put(text)
+            except ConnectionResetError:
+                QtGui.QMessageBox.information(self, "ERROR!", "Verbindung zum Server verloren.")
 
 
 class View(QtGui.QMainWindow, ClientView.Ui_MainWindow):
@@ -86,11 +89,8 @@ class View(QtGui.QMainWindow, ClientView.Ui_MainWindow):
     def add_post(self, text):
         self.textBrowser.append(str(text))
 
-    def done(self):
-        self.btn_stop.setEnabled(False)
-        self.btn_start.setEnabled(True)
-        self.progress_bar.setValue(0)
-        QtGui.QMessageBox.information(self, "Done!", "Done fetching posts!")
+    def message(self, text, titel):
+        QtGui.QMessageBox.information(self, "ERROR!", "Verbindung zum Server verloren.")
 
 
 class Stoppable(metaclass=ABCMeta):
